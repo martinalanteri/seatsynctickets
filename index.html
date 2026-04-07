@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SeatSync</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-black">
+
+  <div class="max-w-4xl mx-auto p-6">
+    <h1 class="text-3xl font-bold mb-4 text-center">🎭 SeatSync</h1>
+
+    <!-- Seating Grid -->
+    <div id="seating" class="grid grid-cols-6 gap-2 mb-6"></div>
+
+    <!-- Booking Form -->
+    <div id="bookingForm" class="bg-white p-4 rounded shadow hidden">
+      <h2 class="text-xl font-semibold mb-2">Book Seat: <span id="seatId"></span></h2>
+
+      <label class="block mb-2">
+        Adults:
+        <input id="adults" type="number" min="0" class="border p-1 w-full" />
+      </label>
+
+      <label class="block mb-2">
+        Children:
+        <input id="children" type="number" min="0" class="border p-1 w-full" />
+      </label>
+
+      <button onclick="bookSeat()" class="bg-black text-white px-4 py-2 mt-2">
+        Confirm Booking
+      </button>
+    </div>
+
+    <!-- Revenue -->
+    <div class="mt-6 bg-white p-4 rounded shadow">
+      <h2 class="text-xl font-semibold">Total Revenue: $<span id="revenue">0</span></h2>
+    </div>
+  </div>
+
+  <script>
+    const rows = ["A","B","C","D","E","F"];
+    const cols = [1,2,3,4,5,6];
+
+    let selectedSeat = null;
+
+    // Mock database
+    let bookings = {};
+
+    function renderSeats() {
+      const seatingDiv = document.getElementById("seating");
+      seatingDiv.innerHTML = "";
+
+      rows.forEach(row => {
+        cols.forEach(col => {
+          const seatId = row + col;
+          const isTaken = bookings[seatId];
+
+          const seat = document.createElement("div");
+          seat.className = `p-4 text-center cursor-pointer ${
+            isTaken ? "bg-red-500" : "bg-green-500"
+          } text-white`;
+
+          seat.innerText = seatId;
+
+          seat.onclick = () => {
+            if (isTaken) {
+              alert("Seat already booked!");
+              return;
+            }
+            openForm(seatId);
+          };
+
+          seatingDiv.appendChild(seat);
+        });
+      });
+    }
+
+    function openForm(seatId) {
+      selectedSeat = seatId;
+      document.getElementById("seatId").innerText = seatId;
+      document.getElementById("bookingForm").classList.remove("hidden");
+    }
+
+    function bookSeat() {
+      const adults = parseInt(document.getElementById("adults").value) || 0;
+      const children = parseInt(document.getElementById("children").value) || 0;
+
+      const total = adults * 10 + children * 5;
+
+      bookings[selectedSeat] = {
+        adults,
+        children,
+        total
+      };
+
+      console.log("Booking saved (mock):", selectedSeat, bookings[selectedSeat]);
+
+      updateRevenue();
+      renderSeats();
+
+      document.getElementById("bookingForm").classList.add("hidden");
+    }
+
+    function updateRevenue() {
+      let totalRevenue = 0;
+
+      Object.values(bookings).forEach(b => {
+        totalRevenue += b.total;
+      });
+
+      document.getElementById("revenue").innerText = totalRevenue;
+    }
+
+    renderSeats();
+  </script>
+
+</body>
+</html>
