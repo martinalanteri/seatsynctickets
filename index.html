@@ -8,109 +8,190 @@
 <body class="bg-gray-100 text-black">
 
   <div class="max-w-4xl mx-auto p-6">
-    <h1 class="text-3xl font-bold mb-4 text-center">🎭 SeatSync</h1>
 
-    <!-- Seating Grid -->
-    <div id="seating" class="grid grid-cols-6 gap-2 mb-6"></div>
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="bg-white p-6 rounded shadow">
+      <h1 class="text-2xl font-bold mb-4">Login to SeatSync</h1>
 
-    <!-- Booking Form -->
-    <div id="bookingForm" class="bg-white p-4 rounded shadow hidden">
-      <h2 class="text-xl font-semibold mb-2">Book Seat: <span id="seatId"></span></h2>
+      <input id="email" type="email" placeholder="Email" class="border p-2 w-full mb-2">
+      <input id="password" type="password" placeholder="Password" class="border p-2 w-full mb-2">
 
-      <label class="block mb-2">
-        Adults:
-        <input id="adults" type="number" min="0" class="border p-1 w-full" />
-      </label>
-
-      <label class="block mb-2">
-        Children:
-        <input id="children" type="number" min="0" class="border p-1 w-full" />
-      </label>
-
-      <button onclick="bookSeat()" class="bg-black text-white px-4 py-2 mt-2">
-        Confirm Booking
-      </button>
+      <button onclick="login()" class="bg-black text-white px-4 py-2 w-full">Login</button>
     </div>
 
-    <!-- Revenue -->
-    <div class="mt-6 bg-white p-4 rounded shadow">
-      <h2 class="text-xl font-semibold">Total Revenue: $<span id="revenue">0</span></h2>
+    <!-- APP (HIDDEN UNTIL LOGIN) -->
+    <div id="app" class="hidden">
+      <h1 class="text-3xl font-bold mb-4 text-center">🎭 SeatSync</h1>
+
+      <button onclick="logout()" class="mb-4 text-sm text-gray-600">Logout</button>
+
+      <!-- Revenue -->
+      <div class="bg-white p-4 rounded shadow mb-6">
+        <p>Total Tickets Sold: <span id="tickets">0</span></p>
+        <p>Total Revenue: $<span id="revenue">0</span></p>
+      </div>
+
+      <!-- Seating -->
+      <div id="seating" class="grid grid-cols-5 gap-2 mb-6"></div>
+
+      <!-- Booking Form -->
+      <div id="bookingForm" class="hidden bg-white p-4 rounded shadow">
+        <h2 class="text-xl mb-2">Book Seat <span id="seatNumber"></span></h2>
+
+        <label class="block mb-2">
+          Adults:
+          <input id="adults" type="number" min="0" class="border p-1 w-full">
+        </label>
+
+        <label class="block mb-2">
+          Children:
+          <input id="children" type="number" min="0" class="border p-1 w-full">
+        </label>
+
+        <button onclick="saveBooking()" class="bg-black text-white px-4 py-2 mt-2">Confirm Booking</button>
+        <button onclick="cancelBooking()" class="ml-2 text-gray-600">Cancel</button>
+      </div>
     </div>
   </div>
 
-  <script>
-    const rows = ["A","B","C","D","E","F"];
-    const cols = [1,2,3,4,5,6];
+  <script type="module">
+    // 🔥 Firebase Imports (v10 Modular)
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } 
+      from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+    // 🔑 YOUR FIREBASE CONFIG (REPLACE THIS)
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    let currentUser = null;
+
+    // UI Elements
+    const loginScreen = document.getElementById("loginScreen");
+    const appScreen = document.getElementById("app");
+
+    // Auth State Listener
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        currentUser = user;
+        loginScreen.classList.add("hidden");
+        appScreen.classList.remove("hidden");
+      } else {
+        loginScreen.classList.remove("hidden");
+        appScreen.classList.add("hidden");
+      }
+    });
+
+    // Login Function
+    window.login = async function () {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        console.log("Logged in!");
+      } catch (error) {
+        alert(error.message);
+      }
+    };
+
+    // Logout
+    window.logout = function () {
+      signOut(auth);
+    };
+
+    // ===== EXISTING APP LOGIC =====
+
+    const seatingEl = document.getElementById("seating");
+    const formEl = document.getElementById("bookingForm");
+    const seatNumberEl = document.getElementById("seatNumber");
 
     let selectedSeat = null;
+    let bookings = [];
 
-    // Mock database
-    let bookings = {};
+    const PRICE_ADULT = 10;
+    const PRICE_CHILD = 5;
+
+    const seats = [];
+    for (let i = 1; i <= 25; i++) {
+      seats.push({ id: i, taken: false });
+    }
 
     function renderSeats() {
-      const seatingDiv = document.getElementById("seating");
-      seatingDiv.innerHTML = "";
+      seatingEl.innerHTML = "";
+      seats.forEach(seat => {
+        const btn = document.createElement("button");
+        btn.textContent = seat.id;
+        btn.className = `p-4 rounded text-white ${
+          seat.taken ? "bg-red-500" : "bg-green-500"
+        }`;
 
-      rows.forEach(row => {
-        cols.forEach(col => {
-          const seatId = row + col;
-          const isTaken = bookings[seatId];
-
-          const seat = document.createElement("div");
-          seat.className = `p-4 text-center cursor-pointer ${
-            isTaken ? "bg-red-500" : "bg-green-500"
-          } text-white`;
-
-          seat.innerText = seatId;
-
-          seat.onclick = () => {
-            if (isTaken) {
-              alert("Seat already booked!");
-              return;
-            }
-            openForm(seatId);
-          };
-
-          seatingDiv.appendChild(seat);
-        });
+        btn.onclick = () => handleSeatClick(seat);
+        seatingEl.appendChild(btn);
       });
     }
 
-    function openForm(seatId) {
-      selectedSeat = seatId;
-      document.getElementById("seatId").innerText = seatId;
-      document.getElementById("bookingForm").classList.remove("hidden");
+    function handleSeatClick(seat) {
+      if (seat.taken) return;
+      selectedSeat = seat;
+      seatNumberEl.textContent = seat.id;
+      formEl.classList.remove("hidden");
     }
 
-    function bookSeat() {
+    window.saveBooking = function () {
       const adults = parseInt(document.getElementById("adults").value) || 0;
       const children = parseInt(document.getElementById("children").value) || 0;
 
-      const total = adults * 10 + children * 5;
+      if (adults + children === 0) {
+        alert("Please enter at least one ticket.");
+        return;
+      }
 
-      bookings[selectedSeat] = {
+      const total = adults * PRICE_ADULT + children * PRICE_CHILD;
+
+      const booking = {
+        seatId: selectedSeat.id,
         adults,
         children,
-        total
+        total,
+        userId: currentUser.uid
       };
 
-      console.log("Booking saved (mock):", selectedSeat, bookings[selectedSeat]);
+      bookings.push(booking);
+      console.log("Saved booking (future Firestore):", booking);
 
-      updateRevenue();
+      selectedSeat.taken = true;
+
       renderSeats();
-
-      document.getElementById("bookingForm").classList.add("hidden");
-    }
+      updateRevenue();
+      cancelBooking();
+    };
 
     function updateRevenue() {
       let totalRevenue = 0;
+      let totalTickets = 0;
 
-      Object.values(bookings).forEach(b => {
+      bookings.forEach(b => {
         totalRevenue += b.total;
+        totalTickets += b.adults + b.children;
       });
 
-      document.getElementById("revenue").innerText = totalRevenue;
+      document.getElementById("revenue").textContent = totalRevenue;
+      document.getElementById("tickets").textContent = totalTickets;
     }
+
+    window.cancelBooking = function () {
+      formEl.classList.add("hidden");
+      document.getElementById("adults").value = "";
+      document.getElementById("children").value = "";
+    };
 
     renderSeats();
   </script>
