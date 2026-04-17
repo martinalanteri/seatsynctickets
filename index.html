@@ -1,248 +1,253 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>SeatSync</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 
-<body class="bg-gray-100 text-black">
+import { 
+  getAuth, 
+  signInWithEmailAndPassword, 
+  onAuthStateChanged, 
+  signOut 
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-  <div class="max-w-4xl mx-auto p-6">
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  onSnapshot,
+  serverTimestamp,
+  query,
+  where,
+  getDocs,
+  deleteDoc,
+  doc
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    <!-- LOGIN SCREEN -->
-    <div id="loginScreen" class="bg-white p-6 rounded shadow">
-      <h1 class="text-2xl font-bold mb-4">Login to SeatSync</h1>
+// CONFIG
+const firebaseConfig = {
+  apiKey: "AIzaSyBJeSiCRIltuDtB9ztQju8sBZ2zJfYUMtI",
+  authDomain: "seatsync-3e23b.firebaseapp.com",
+  projectId: "seatsync-3e23b",
+  storageBucket: "seatsync-3e23b.firebasestorage.app",
+  messagingSenderId: "446161771063",
+  appId: "1:446161771063:web:02de1da576721fe8babdb2"
+};
 
-      <input id="email" type="email" placeholder="Email" class="border p-2 w-full mb-2">
-      <input id="password" type="password" placeholder="Password" class="border p-2 w-full mb-2">
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-      <button onclick="login()" class="bg-black text-white px-4 py-2 w-full">Login</button>
-    </div>
+console.log("Firestore Database connected successfully!");
 
-    <!-- APP -->
-    <div id="app" class="hidden">
-      <h1 class="text-3xl font-bold mb-4 text-center">🎭 SeatSync</h1>
+// STATE
+let currentUser = null;
+let selectedSeat = null;
+let bookings = [];
+let locks = [];
 
-      <button onclick="logout()" class="mb-4 text-sm text-gray-600">Logout</button>
+// UI
+const loginScreen = document.getElementById("loginScreen");
+const appScreen = document.getElementById("app");
+const seatingEl = document.getElementById("seating");
+const formEl = document.getElementById("bookingForm");
+const seatNumberEl = document.getElementById("seatNumber");
 
-      <!-- Revenue -->
-      <div class="bg-white p-4 rounded shadow mb-6">
-        <p>Total Tickets Sold: <span id="tickets">0</span></p>
-        <p>Total Revenue: $<span id="revenue">0</span></p>
-      </div>
+const PRICE_ADULT = 10;
+const PRICE_CHILD = 5;
 
-      <!-- Seating -->
-      <div id="seating" class="grid grid-cols-5 gap-2 mb-6"></div>
+// SEATS
+const seats = [];
+for (let i = 1; i <= 25; i++) {
+  seats.push({ id: i, taken: false, locked: false });
+}
 
-      <!-- Booking Form -->
-      <div id="bookingForm" class="hidden bg-white p-4 rounded shadow">
-        <h2 class="text-xl mb-2">Book Seat <span id="seatNumber"></span></h2>
+// AUTH
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    currentUser = user;
+    loginScreen.classList.add("hidden");
+    appScreen.classList.remove("hidden");
 
-        <label class="block mb-2">
-          Adults:
-          <input id="adults" type="number" min="0" class="border p-1 w-full">
-        </label>
+    startRealtimeListeners();
+  } else {
+    loginScreen.classList.remove("hidden");
+    appScreen.classList.add("hidden");
+  }
+});
 
-        <label class="block mb-2">
-          Children:
-          <input id="children" type="number" min="0" class="border p-1 w-full">
-        </label>
+// LOGIN
+window.login = async function () {
+  const email = email.value;
+  const password = password.value;
+  await signInWithEmailAndPassword(auth, email, password);
+};
 
-        <button onclick="saveBooking()" class="bg-black text-white px-4 py-2 mt-2">Confirm Booking</button>
-        <button onclick="cancelBooking()" class="ml-2 text-gray-600">Cancel</button>
-      </div>
-    </div>
+// LOGOUT
+window.logout = function () {
+  signOut(auth);
+};
 
-  </div>
+// RENDER
+function renderSeats() {
+  seatingEl.innerHTML = "";
 
-  <script type="module">
-    // 🔥 Firebase Imports
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  seats.forEach(seat => {
+    const btn = document.createElement("button");
 
-    import { 
-      getAuth, 
-      signInWithEmailAndPassword, 
-      onAuthStateChanged, 
-      signOut 
-    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    btn.textContent = seat.id;
 
-    import {
-      getFirestore,
-      collection,
-      addDoc,
-      getDocs
-    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    if (seat.taken) {
+      btn.className = "p-4 rounded text-white bg-red-500";
+    } else if (seat.locked) {
+      btn.className = "p-4 rounded text-white bg-yellow-500";
+    } else {
+      btn.className = "p-4 rounded text-white bg-green-500";
+    }
 
-    // ✅ YOUR REAL CONFIG
-    const firebaseConfig = {
-      apiKey: "AIzaSyBJeSiCRIltuDtB9ztQju8sBZ2zJfYUMtI",
-      authDomain: "seatsync-3e23b.firebaseapp.com",
-      projectId: "seatsync-3e23b",
-      storageBucket: "seatsync-3e23b.firebasestorage.app",
-      messagingSenderId: "446161771063",
-      appId: "1:446161771063:web:02de1da576721fe8babdb2"
-    };
+    btn.onclick = () => handleSeatClick(seat);
+    seatingEl.appendChild(btn);
+  });
+}
 
-    // 🔥 Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+// CLICK SEAT → CREATE LOCK
+async function handleSeatClick(seat) {
+  if (seat.taken || seat.locked) return;
 
-    console.log("Firestore Database connected successfully!");
+  // check if already locked
+  const q = query(
+    collection(db, "seatLocks"),
+    where("seatId", "==", seat.id)
+  );
 
-    let currentUser = null;
+  const snapshot = await getDocs(q);
 
-    // UI Elements
-    const loginScreen = document.getElementById("loginScreen");
-    const appScreen = document.getElementById("app");
+  if (!snapshot.empty) {
+    alert("Seat is being reserved by someone else.");
+    return;
+  }
 
-    // Auth State
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        currentUser = user;
-        loginScreen.classList.add("hidden");
-        appScreen.classList.remove("hidden");
+  // create lock (2 minutes)
+  const expiresAt = Date.now() + 2 * 60 * 1000;
 
-        loadBookings(); // 🔥 Load from Firestore
-      } else {
-        loginScreen.classList.remove("hidden");
-        appScreen.classList.add("hidden");
-      }
+  await addDoc(collection(db, "seatLocks"), {
+    seatId: seat.id,
+    userId: currentUser.uid,
+    expiresAt
+  });
+
+  selectedSeat = seat;
+  seatNumberEl.textContent = seat.id;
+  formEl.classList.remove("hidden");
+}
+
+// SAVE BOOKING
+window.saveBooking = async function () {
+  const adults = parseInt(document.getElementById("adults").value) || 0;
+  const children = parseInt(document.getElementById("children").value) || 0;
+
+  if (adults + children === 0) return alert("Enter tickets");
+
+  const total = adults * PRICE_ADULT + children * PRICE_CHILD;
+
+  await addDoc(collection(db, "bookings"), {
+    seatId: selectedSeat.id,
+    adults,
+    children,
+    total,
+    userId: currentUser.uid,
+    createdAt: serverTimestamp()
+  });
+
+  // remove lock after booking
+  await removeLock(selectedSeat.id);
+
+  cancelBooking();
+};
+
+// REMOVE LOCK
+async function removeLock(seatId) {
+  const q = query(
+    collection(db, "seatLocks"),
+    where("seatId", "==", seatId),
+    where("userId", "==", currentUser.uid)
+  );
+
+  const snapshot = await getDocs(q);
+
+  snapshot.forEach(async (d) => {
+    await deleteDoc(doc(db, "seatLocks", d.id));
+  });
+}
+
+// REALTIME LISTENERS
+function startRealtimeListeners() {
+  // BOOKINGS
+  onSnapshot(collection(db, "bookings"), (snapshot) => {
+    bookings = [];
+
+    seats.forEach(s => {
+      s.taken = false;
+      s.locked = false;
     });
 
-    // Login
-    window.login = async function () {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      bookings.push(data);
 
-      try {
-        await signInWithEmailAndPassword(auth, email, password);
-      } catch (error) {
-        alert(error.message);
-      }
-    };
+      const seat = seats.find(s => s.id === data.seatId);
+      if (seat) seat.taken = true;
+    });
+  });
 
-    // Logout
-    window.logout = function () {
-      signOut(auth);
-    };
+  // LOCKS
+  onSnapshot(collection(db, "seatLocks"), async (snapshot) => {
+    locks = [];
 
-    // ===== APP LOGIC =====
+    const now = Date.now();
 
-    const seatingEl = document.getElementById("seating");
-    const formEl = document.getElementById("bookingForm");
-    const seatNumberEl = document.getElementById("seatNumber");
+    snapshot.forEach(async (d) => {
+      const data = d.data();
 
-    let selectedSeat = null;
-    let bookings = [];
-
-    const PRICE_ADULT = 10;
-    const PRICE_CHILD = 5;
-
-    const seats = [];
-    for (let i = 1; i <= 25; i++) {
-      seats.push({ id: i, taken: false });
-    }
-
-    function renderSeats() {
-      seatingEl.innerHTML = "";
-      seats.forEach(seat => {
-        const btn = document.createElement("button");
-        btn.textContent = seat.id;
-        btn.className = `p-4 rounded text-white ${
-          seat.taken ? "bg-red-500" : "bg-green-500"
-        }`;
-
-        btn.onclick = () => handleSeatClick(seat);
-        seatingEl.appendChild(btn);
-      });
-    }
-
-    function handleSeatClick(seat) {
-      if (seat.taken) return;
-      selectedSeat = seat;
-      seatNumberEl.textContent = seat.id;
-      formEl.classList.remove("hidden");
-    }
-
-    // 🔥 SAVE TO FIRESTORE
-    window.saveBooking = async function () {
-      const adults = parseInt(document.getElementById("adults").value) || 0;
-      const children = parseInt(document.getElementById("children").value) || 0;
-
-      if (adults + children === 0) {
-        alert("Please enter at least one ticket.");
+      // auto-expire
+      if (data.expiresAt < now) {
+        await deleteDoc(doc(db, "seatLocks", d.id));
         return;
       }
 
-      const total = adults * PRICE_ADULT + children * PRICE_CHILD;
+      locks.push(data);
 
-      const booking = {
-        seatId: selectedSeat.id,
-        adults,
-        children,
-        total,
-        userId: currentUser.uid,
-        createdAt: new Date()
-      };
-
-      try {
-        await addDoc(collection(db, "bookings"), booking);
-
-        bookings.push(booking);
-        selectedSeat.taken = true;
-
-        renderSeats();
-        updateRevenue();
-        cancelBooking();
-
-        console.log("Booking saved to Firestore!");
-      } catch (err) {
-        console.error(err);
-        alert("Error saving booking");
-      }
-    };
-
-    // 🔥 LOAD FROM FIRESTORE
-    async function loadBookings() {
-      const querySnapshot = await getDocs(collection(db, "bookings"));
-
-      bookings = [];
-
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        bookings.push(data);
-
-        const seat = seats.find(s => s.id === data.seatId);
-        if (seat) seat.taken = true;
-      });
-
-      renderSeats();
-      updateRevenue();
-    }
-
-    function updateRevenue() {
-      let totalRevenue = 0;
-      let totalTickets = 0;
-
-      bookings.forEach(b => {
-        totalRevenue += b.total;
-        totalTickets += b.adults + b.children;
-      });
-
-      document.getElementById("revenue").textContent = totalRevenue;
-      document.getElementById("tickets").textContent = totalTickets;
-    }
-
-    window.cancelBooking = function () {
-      formEl.classList.add("hidden");
-      document.getElementById("adults").value = "";
-      document.getElementById("children").value = "";
-    };
+      const seat = seats.find(s => s.id === data.seatId);
+      if (seat && !seat.taken) seat.locked = true;
+    });
 
     renderSeats();
-  </script>
+    updateRevenue();
+  });
+}
 
-</body>
-</html>
+// REVENUE
+function updateRevenue() {
+  let revenue = 0;
+  let tickets = 0;
+
+  bookings.forEach(b => {
+    revenue += b.total;
+    tickets += b.adults + b.children;
+  });
+
+  document.getElementById("revenue").textContent = revenue;
+  document.getElementById("tickets").textContent = tickets;
+}
+
+// CANCEL
+window.cancelBooking = async function () {
+  if (selectedSeat) {
+    await removeLock(selectedSeat.id);
+  }
+
+  formEl.classList.add("hidden");
+  document.getElementById("adults").value = "";
+  document.getElementById("children").value = "";
+};
+
+// INIT
+renderSeats();
+</script>
