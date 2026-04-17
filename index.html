@@ -5,6 +5,7 @@
   <title>SeatSync</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
+
 <body class="bg-gray-100 text-black">
 
   <div class="max-w-4xl mx-auto p-6">
@@ -19,7 +20,7 @@
       <button onclick="login()" class="bg-black text-white px-4 py-2 w-full">Login</button>
     </div>
 
-    <!-- APP (HIDDEN UNTIL LOGIN) -->
+    <!-- APP -->
     <div id="app" class="hidden">
       <h1 class="text-3xl font-bold mb-4 text-center">🎭 SeatSync</h1>
 
@@ -52,24 +53,43 @@
         <button onclick="cancelBooking()" class="ml-2 text-gray-600">Cancel</button>
       </div>
     </div>
+
   </div>
 
   <script type="module">
-    // 🔥 Firebase Imports (v10 Modular)
+    // 🔥 Firebase Imports
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } 
-      from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-    // 🔑 YOUR FIREBASE CONFIG (REPLACE THIS)
+    import { 
+      getAuth, 
+      signInWithEmailAndPassword, 
+      onAuthStateChanged, 
+      signOut 
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      getDocs
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // ✅ YOUR REAL CONFIG
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-      projectId: "YOUR_PROJECT_ID",
-      appId: "YOUR_APP_ID"
+      apiKey: "AIzaSyBJeSiCRIltuDtB9ztQju8sBZ2zJfYUMtI",
+      authDomain: "seatsync-3e23b.firebaseapp.com",
+      projectId: "seatsync-3e23b",
+      storageBucket: "seatsync-3e23b.firebasestorage.app",
+      messagingSenderId: "446161771063",
+      appId: "1:446161771063:web:02de1da576721fe8babdb2"
     };
 
+    // 🔥 Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    console.log("Firestore Database connected successfully!");
 
     let currentUser = null;
 
@@ -77,26 +97,27 @@
     const loginScreen = document.getElementById("loginScreen");
     const appScreen = document.getElementById("app");
 
-    // Auth State Listener
+    // Auth State
     onAuthStateChanged(auth, (user) => {
       if (user) {
         currentUser = user;
         loginScreen.classList.add("hidden");
         appScreen.classList.remove("hidden");
+
+        loadBookings(); // 🔥 Load from Firestore
       } else {
         loginScreen.classList.remove("hidden");
         appScreen.classList.add("hidden");
       }
     });
 
-    // Login Function
+    // Login
     window.login = async function () {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
 
       try {
         await signInWithEmailAndPassword(auth, email, password);
-        console.log("Logged in!");
       } catch (error) {
         alert(error.message);
       }
@@ -107,7 +128,7 @@
       signOut(auth);
     };
 
-    // ===== EXISTING APP LOGIC =====
+    // ===== APP LOGIC =====
 
     const seatingEl = document.getElementById("seating");
     const formEl = document.getElementById("bookingForm");
@@ -145,7 +166,8 @@
       formEl.classList.remove("hidden");
     }
 
-    window.saveBooking = function () {
+    // 🔥 SAVE TO FIRESTORE
+    window.saveBooking = async function () {
       const adults = parseInt(document.getElementById("adults").value) || 0;
       const children = parseInt(document.getElementById("children").value) || 0;
 
@@ -161,18 +183,44 @@
         adults,
         children,
         total,
-        userId: currentUser.uid
+        userId: currentUser.uid,
+        createdAt: new Date()
       };
 
-      bookings.push(booking);
-      console.log("Saved booking (future Firestore):", booking);
+      try {
+        await addDoc(collection(db, "bookings"), booking);
 
-      selectedSeat.taken = true;
+        bookings.push(booking);
+        selectedSeat.taken = true;
+
+        renderSeats();
+        updateRevenue();
+        cancelBooking();
+
+        console.log("Booking saved to Firestore!");
+      } catch (err) {
+        console.error(err);
+        alert("Error saving booking");
+      }
+    };
+
+    // 🔥 LOAD FROM FIRESTORE
+    async function loadBookings() {
+      const querySnapshot = await getDocs(collection(db, "bookings"));
+
+      bookings = [];
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        bookings.push(data);
+
+        const seat = seats.find(s => s.id === data.seatId);
+        if (seat) seat.taken = true;
+      });
 
       renderSeats();
       updateRevenue();
-      cancelBooking();
-    };
+    }
 
     function updateRevenue() {
       let totalRevenue = 0;
