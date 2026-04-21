@@ -1,59 +1,78 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-GB">
 <head>
   <meta charset="UTF-8">
-  <title>SeatSync</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SeatSync | Theatre Booking</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body class="bg-gray-100 text-black">
+<body class="bg-gray-100 text-slate-900 antialiased">
 
   <div class="max-w-4xl mx-auto p-6">
 
-    <!-- LOGIN -->
-    <div id="loginScreen" class="bg-white p-6 rounded shadow">
-      <h1 class="text-2xl font-bold mb-4">Login to SeatSync</h1>
+    <div id="loginScreen" class="bg-white p-8 rounded-lg shadow-md max-w-md mx-auto mt-10">
+      <h1 class="text-2xl font-bold mb-6 text-center">Login to SeatSync</h1>
 
-      <input id="email" type="email" placeholder="Email" class="border p-2 w-full mb-2">
-      <input id="password" type="password" placeholder="Password" class="border p-2 w-full mb-2">
+      <div class="space-y-4">
+        <input id="email" type="email" placeholder="Email" class="border p-2 w-full rounded focus:ring-2 focus:ring-black outline-none">
+        <input id="password" type="password" placeholder="Password" class="border p-2 w-full rounded focus:ring-2 focus:ring-black outline-none">
 
-      <button onclick="login()" class="bg-black text-white px-4 py-2 w-full">Login</button>
+        <button id="loginBtn" class="bg-black text-white px-4 py-2 w-full rounded hover:bg-gray-800 transition">
+          Login
+        </button>
+      </div>
     </div>
 
-    <!-- APP -->
     <div id="app" class="hidden">
-      <h1 class="text-3xl font-bold mb-4 text-center">🎭 SeatSync</h1>
+      <header class="text-center mb-8">
+        <h1 class="text-4xl font-extrabold mb-2">🎭 SeatSync</h1>
+        <button id="logoutBtn" class="text-sm text-red-600 hover:underline">Logout</button>
+      </header>
 
-      <button onclick="logout()" class="mb-4 text-sm text-gray-600">Logout</button>
-
-      <div class="bg-white p-4 rounded shadow mb-6">
-        <p>Total Tickets Sold: <span id="tickets">0</span></p>
-        <p>Total Revenue: $<span id="revenue">0</span></p>
+      <div class="grid grid-cols-2 gap-4 mb-8">
+        <div class="bg-white p-4 rounded-lg shadow text-center">
+          <p class="text-gray-500 text-sm uppercase font-semibold">Tickets Sold</p>
+          <p class="text-2xl font-bold" id="tickets">0</p>
+        </div>
+        <div class="bg-white p-4 rounded-lg shadow text-center">
+          <p class="text-gray-500 text-sm uppercase font-semibold">Total Revenue</p>
+          <p class="text-2xl font-bold text-green-600">£<span id="revenue">0</span></p>
+        </div>
       </div>
 
-      <div id="seating" class="grid grid-cols-5 gap-2 mb-6"></div>
+      <div class="bg-white p-6 rounded-lg shadow mb-8">
+        <h2 class="text-lg font-bold mb-4 text-center border-b pb-2 italic text-gray-400 uppercase tracking-widest text-xs">Stage</h2>
+        <div id="seating" class="grid grid-cols-5 gap-3 max-w-xs mx-auto">
+          </div>
+      </div>
 
-      <div id="bookingForm" class="hidden bg-white p-4 rounded shadow">
-        <h2 class="text-xl mb-2">Book Seat <span id="seatNumber"></span></h2>
+      <div id="bookingForm" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4">
+        <div class="bg-white p-6 rounded-xl shadow-xl w-full max-w-sm">
+          <h2 class="text-xl font-bold mb-4">Book Seat #<span id="seatNumberDisplay"></span></h2>
 
-        <label class="block mb-2">
-          Adults:
-          <input id="adults" type="number" min="0" class="border p-1 w-full">
-        </label>
+          <div class="space-y-4">
+            <div>
+              <label for="adults" class="block text-sm font-medium mb-1">Adults (£15.00):</label>
+              <input id="adults" type="number" min="0" value="0" class="border p-2 w-full rounded">
+            </div>
 
-        <label class="block mb-2">
-          Children:
-          <input id="children" type="number" min="0" class="border p-1 w-full">
-        </label>
+            <div>
+              <label for="children" class="block text-sm font-medium mb-1">Children (£10.00):</label>
+              <input id="children" type="number" min="0" value="0" class="border p-2 w-full rounded">
+            </div>
 
-        <button onclick="saveBooking()" class="bg-black text-white px-4 py-2 mt-2">Confirm Booking</button>
-        <button onclick="cancelBooking()" class="ml-2 text-gray-600">Cancel</button>
+            <div class="flex gap-2 pt-2">
+              <button id="confirmBookingBtn" class="flex-1 bg-black text-white px-4 py-2 rounded font-bold">Confirm</button>
+              <button id="cancelBookingBtn" class="flex-1 bg-gray-200 text-gray-800 px-4 py-2 rounded">Cancel</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
   </div>
 
-  <!-- ✅ Separate JS file -->
   <script type="module" src="./app.js"></script>
 
 </body>
