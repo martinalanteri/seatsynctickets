@@ -3,68 +3,67 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SeatSync | Multi-Booking</title>
+  <title>SeatSync | Premium Numbered Booking</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+    .seat-transition { transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+  </style>
 </head>
-<body class="bg-slate-50 text-slate-900 antialiased">
+<body class="bg-[#0f172a] text-slate-200 antialiased min-h-screen">
 
-  <div class="max-w-4xl mx-auto p-6">
-    <header class="text-center mb-8">
-      <h1 class="text-4xl font-extrabold tracking-tight">🎭 SeatSync</h1>
-      <p class="text-slate-500">Tap seats to select, then book all at once</p>
+  <div class="max-w-2xl mx-auto p-8">
+    <header class="text-center mb-16 mt-8">
+      <h1 class="text-5xl font-extrabold tracking-tighter text-white mb-2">SEAT<span class="text-indigo-500">SYNC</span></h1>
+      <p class="text-slate-400 font-light uppercase tracking-[0.4em] text-xs">Curated Experience Booking</p>
     </header>
 
-    <div class="grid grid-cols-2 gap-4 mb-8">
-      <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 text-center">
-        <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Tickets Sold</p>
-        <p id="tickets" class="text-3xl font-black">0</p>
-      </div>
-      <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 text-center">
-        <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Total Revenue</p>
-        <p class="text-3xl font-black text-emerald-600">$<span id="revenue">0</span></p>
-      </div>
-    </div>
-
-    <div class="bg-white p-8 rounded-2xl shadow-md border border-slate-200 mb-8">
-      <div class="w-full h-4 bg-slate-800 rounded-t-full mb-12 flex items-center justify-center">
-        <span class="text-[10px] text-white uppercase tracking-[0.3em] font-bold">Stage</span>
+    <div class="glass rounded-3xl p-10 shadow-2xl relative overflow-hidden">
+      <div class="absolute -top-24 -left-24 w-48 h-48 bg-indigo-600/20 blur-[100px]"></div>
+      
+      <div class="w-full mb-16">
+        <div class="w-2/3 h-[2px] bg-gradient-to-r from-transparent via-indigo-500 to-transparent mx-auto relative">
+          <div class="absolute -top-4 left-1/2 -translate-x-1/2 text-[10px] text-indigo-400 uppercase tracking-[0.5em] font-semibold">Stage</div>
+        </div>
       </div>
       
-      <div id="seating" class="grid grid-cols-5 gap-4 max-w-sm mx-auto"></div>
+      <div id="seating" class="grid grid-cols-5 gap-5 max-w-sm mx-auto"></div>
 
-      <div id="multiAction" class="hidden mt-8 text-center border-t pt-6">
-        <p class="mb-4 font-medium text-slate-600">Selected Seats: <span id="selectedCount" class="font-bold text-black">0</span></p>
-        <button onclick="openBookingForm()" class="bg-black text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-800 transition shadow-lg">
-          Book Selected Seats
+      <div id="multiAction" class="hidden mt-12 text-center pt-8 border-t border-slate-800 animate-fade-in">
+        <button onclick="openBookingForm()" class="group relative px-10 py-4 bg-white text-slate-900 rounded-full font-bold overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+          <span class="relative z-10">Confirm <span id="selectedCount">0</span> Seats</span>
         </button>
       </div>
     </div>
+  </div>
 
-    <div id="bookingForm" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm">
-        <h2 class="text-2xl font-bold mb-4">Ticket Type</h2>
-        
-        <div class="space-y-6">
-          <div class="flex items-center justify-between p-4 border rounded-xl hover:bg-slate-50 transition cursor-pointer" onclick="selectType('adult')">
-            <div>
-              <p class="font-bold">Adult</p>
-              <p class="text-sm text-slate-500">$10.00 per seat</p>
-            </div>
-            <div id="adultCheck" class="w-6 h-6 border-2 rounded-full flex items-center justify-center"></div>
+  <div id="bookingForm" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-6 z-50">
+    <div class="bg-[#1e293b] p-10 rounded-[2.5rem] shadow-2xl w-full max-w-md border border-slate-700/50">
+      <h2 class="text-3xl font-extrabold text-white mb-2 uppercase">Selection</h2>
+      <p class="text-slate-400 mb-8 font-light italic">Assign a tier to your selected numbered seats</p>
+      
+      <div class="space-y-4">
+        <div onclick="selectType('adult')" class="group flex items-center justify-between p-6 rounded-2xl border border-slate-700 hover:border-indigo-500 hover:bg-indigo-500/5 transition-all cursor-pointer">
+          <div>
+            <p class="text-lg font-bold text-white group-hover:text-indigo-400 transition">Premier Adult</p>
+            <p class="text-sm text-slate-400">$10.00 / seat</p>
           </div>
+          <div id="adultCheck" class="w-6 h-6 border border-slate-600 rounded-full flex items-center justify-center text-xs"></div>
+        </div>
 
-          <div class="flex items-center justify-between p-4 border rounded-xl hover:bg-slate-50 transition cursor-pointer" onclick="selectType('child')">
-            <div>
-              <p class="font-bold">Child</p>
-              <p class="text-sm text-slate-500">$5.00 per seat</p>
-            </div>
-            <div id="childCheck" class="w-6 h-6 border-2 rounded-full flex items-center justify-center"></div>
+        <div onclick="selectType('child')" class="group flex items-center justify-between p-6 rounded-2xl border border-slate-700 hover:border-indigo-500 hover:bg-indigo-500/5 transition-all cursor-pointer">
+          <div>
+            <p class="text-lg font-bold text-white group-hover:text-indigo-400 transition">Junior Delegate</p>
+            <p class="text-sm text-slate-400">$5.00 / seat</p>
           </div>
+          <div id="childCheck" class="w-6 h-6 border border-slate-600 rounded-full flex items-center justify-center text-xs"></div>
+        </div>
 
-          <div class="flex gap-3 pt-2">
-            <button onclick="saveAllBookings()" class="flex-1 bg-black text-white px-4 py-3 rounded-xl font-bold hover:bg-slate-800 transition">Confirm Booking</button>
-            <button onclick="cancelBooking()" class="flex-1 bg-slate-100 text-slate-600 px-4 py-3 rounded-xl font-bold hover:bg-slate-200 transition">Cancel</button>
-          </div>
+        <div class="flex flex-col gap-4 pt-8">
+          <button onclick="saveAllBookings()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-5 rounded-2xl font-black tracking-widest uppercase transition-all shadow-lg">Finalise Reservation</button>
+          <button onclick="cancelBooking()" class="w-full text-slate-500 hover:text-white text-sm font-medium transition">Discard Selection</button>
         </div>
       </div>
     </div>
@@ -72,7 +71,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, onSnapshot, getDocs, deleteDoc, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, onSnapshot, getDocs, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBJeSiCRIltuDtB9ztQju8sBZ2zJfYUMtI",
@@ -92,30 +91,15 @@
     const formEl = document.getElementById("bookingForm");
     
     let tempSelectedSeats = [];
-    let selectedType = null; // 'adult' or 'child'
+    let selectedType = null;
     const TOTAL_SEATS = 25;
     const PRICE_ADULT = 10;
     const PRICE_CHILD = 5;
 
     onSnapshot(collection(db, "bookings"), (snapshot) => {
-      const bookedIds = [];
-      let totalRev = 0;
-      let totalTix = 0;
-
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        bookedIds.push(data.seatId);
-        totalRev += data.total;
-        totalTix += (data.adults + data.children);
-      });
-
-      if (bookedIds.length >= TOTAL_SEATS) {
-        alert("Performance Sold Out! Resetting the board...");
-        clearAllBookings();
-      }
-
+      const bookedIds = snapshot.docs.map(doc => doc.data().seatId);
+      if (bookedIds.length >= TOTAL_SEATS) clearAllBookings();
       renderGrid(bookedIds);
-      updateUI(totalRev, totalTix);
     });
 
     function renderGrid(bookedIds) {
@@ -124,25 +108,25 @@
         const isTaken = bookedIds.includes(i);
         const isSelected = tempSelectedSeats.includes(i);
         const btn = document.createElement("button");
-        btn.textContent = i;
+        
+        btn.textContent = i; // Numbering added here
         btn.disabled = isTaken;
         
-        let colorClass = "bg-emerald-500 hover:bg-emerald-600 text-white shadow";
-        if (isTaken) colorClass = "bg-slate-200 text-slate-400 cursor-not-allowed";
-        if (isSelected) colorClass = "bg-blue-600 text-white ring-4 ring-blue-200 scale-105";
+        let style = "bg-slate-800 text-slate-400 border border-slate-700 hover:border-indigo-500 hover:text-indigo-400";
+        if (isTaken) style = "bg-slate-900 text-slate-800 border-transparent cursor-not-allowed opacity-40";
+        if (isSelected) style = "bg-indigo-600 text-white border-indigo-400 shadow-[0_0_20px_rgba(79,70,229,0.5)] scale-110 z-10";
 
-        btn.className = `p-4 rounded-lg font-bold text-lg transition-all duration-150 ${colorClass}`;
+        btn.className = `seat-transition aspect-square rounded-xl font-bold text-base ${style}`;
         btn.onclick = () => toggleSeatSelection(i, bookedIds);
         seatingEl.appendChild(btn);
       }
     }
 
     function toggleSeatSelection(id, bookedIds) {
-      if (tempSelectedSeats.includes(id)) {
-        tempSelectedSeats = tempSelectedSeats.filter(item => item !== id);
-      } else {
-        tempSelectedSeats.push(id);
-      }
+      tempSelectedSeats = tempSelectedSeats.includes(id) 
+        ? tempSelectedSeats.filter(item => item !== id) 
+        : [...tempSelectedSeats, id];
+      
       selectedCountEl.textContent = tempSelectedSeats.length;
       multiActionEl.classList.toggle("hidden", tempSelectedSeats.length === 0);
       renderGrid(bookedIds);
@@ -150,42 +134,37 @@
 
     window.selectType = (type) => {
       selectedType = type;
-      document.getElementById('adultCheck').innerHTML = type === 'adult' ? '✓' : '';
-      document.getElementById('childCheck').innerHTML = type === 'child' ? '✓' : '';
-      document.getElementById('adultCheck').className = `w-6 h-6 border-2 rounded-full flex items-center justify-center ${type === 'adult' ? 'bg-black text-white border-black' : 'border-slate-300'}`;
-      document.getElementById('childCheck').className = `w-6 h-6 border-2 rounded-full flex items-center justify-center ${type === 'child' ? 'bg-black text-white border-black' : 'border-slate-300'}`;
+      const adult = document.getElementById('adultCheck');
+      const child = document.getElementById('childCheck');
+      adult.innerHTML = type === 'adult' ? '●' : '';
+      child.innerHTML = type === 'child' ? '●' : '';
+      adult.className = `w-6 h-6 border-2 rounded-full flex items-center justify-center ${type === 'adult' ? 'border-indigo-500 text-indigo-500' : 'border-slate-600'}`;
+      child.className = `w-6 h-6 border-2 rounded-full flex items-center justify-center ${type === 'child' ? 'border-indigo-500 text-indigo-500' : 'border-slate-600'}`;
     };
 
     window.openBookingForm = () => formEl.classList.remove("hidden");
 
     window.saveAllBookings = async function() {
-      if (!selectedType) return alert("Please select a ticket type (Adult or Child).");
-
+      if (!selectedType) return alert("Please select a reservation tier.");
       const batch = writeBatch(db);
-      const isAdult = selectedType === 'adult';
-      const price = isAdult ? PRICE_ADULT : PRICE_CHILD;
-      const totalPerSeat = price;
+      const price = selectedType === 'adult' ? PRICE_ADULT : PRICE_CHILD;
 
       tempSelectedSeats.forEach(seatId => {
         const docRef = doc(collection(db, "bookings"));
         batch.set(docRef, {
           seatId,
-          adults: isAdult ? 1 : 0,
-          children: isAdult ? 0 : 1,
-          total: totalPerSeat,
+          adults: selectedType === 'adult' ? 1 : 0,
+          children: selectedType === 'child' ? 1 : 0,
+          total: price,
           created: new Date()
         });
       });
 
-      try {
-        await batch.commit();
-        tempSelectedSeats = [];
-        selectedType = null;
-        multiActionEl.classList.add("hidden");
-        cancelBooking();
-      } catch (err) {
-        console.error("Batch error:", err);
-      }
+      await batch.commit();
+      tempSelectedSeats = [];
+      selectedType = null;
+      multiActionEl.classList.add("hidden");
+      cancelBooking();
     };
 
     async function clearAllBookings() {
@@ -195,17 +174,12 @@
       await batch.commit();
     }
 
-    window.cancelBooking = function() {
+    window.cancelBooking = () => {
       formEl.classList.add("hidden");
       selectedType = null;
       document.getElementById('adultCheck').innerHTML = '';
       document.getElementById('childCheck').innerHTML = '';
     };
-
-    function updateUI(rev, tix) {
-      document.getElementById("revenue").textContent = rev.toLocaleString();
-      document.getElementById("tickets").textContent = tix.toLocaleString();
-    }
   </script>
 </body>
 </html>
