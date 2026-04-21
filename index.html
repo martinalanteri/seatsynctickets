@@ -3,77 +3,161 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SeatSync | Theatre Booking</title>
+  <title>SeatSync | Live Booking</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-
-<body class="bg-gray-100 text-slate-900 antialiased">
+<body class="bg-slate-50 text-slate-900 antialiased">
 
   <div class="max-w-4xl mx-auto p-6">
+    <header class="text-center mb-8">
+      <h1 class="text-4xl font-extrabold tracking-tight">🎭 SeatSync</h1>
+      <p class="text-slate-500">Live Theatre Management</p>
+    </header>
 
-    <div id="loginScreen" class="bg-white p-8 rounded-lg shadow-md max-w-md mx-auto mt-10">
-      <h1 class="text-2xl font-bold mb-6 text-center">Login to SeatSync</h1>
-
-      <div class="space-y-4">
-        <input id="email" type="email" placeholder="Email" class="border p-2 w-full rounded focus:ring-2 focus:ring-black outline-none">
-        <input id="password" type="password" placeholder="Password" class="border p-2 w-full rounded focus:ring-2 focus:ring-black outline-none">
-
-        <button id="loginBtn" class="bg-black text-white px-4 py-2 w-full rounded hover:bg-gray-800 transition">
-          Login
-        </button>
+    <div class="grid grid-cols-2 gap-4 mb-8">
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 text-center">
+        <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Tickets Sold</p>
+        <p id="tickets" class="text-3xl font-black">0</p>
+      </div>
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 text-center">
+        <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Total Revenue</p>
+        <p class="text-3xl font-black text-emerald-600">$<span id="revenue">0</span></p>
       </div>
     </div>
 
-    <div id="app" class="hidden">
-      <header class="text-center mb-8">
-        <h1 class="text-4xl font-extrabold mb-2">🎭 SeatSync</h1>
-        <button id="logoutBtn" class="text-sm text-red-600 hover:underline">Logout</button>
-      </header>
-
-      <div class="grid grid-cols-2 gap-4 mb-8">
-        <div class="bg-white p-4 rounded-lg shadow text-center">
-          <p class="text-gray-500 text-sm uppercase font-semibold">Tickets Sold</p>
-          <p class="text-2xl font-bold" id="tickets">0</p>
-        </div>
-        <div class="bg-white p-4 rounded-lg shadow text-center">
-          <p class="text-gray-500 text-sm uppercase font-semibold">Total Revenue</p>
-          <p class="text-2xl font-bold text-green-600">£<span id="revenue">0</span></p>
-        </div>
+    <div class="bg-white p-8 rounded-2xl shadow-md border border-slate-200 mb-8">
+      <div class="w-full h-4 bg-slate-800 rounded-t-full mb-12 flex items-center justify-center">
+        <span class="text-[10px] text-white uppercase tracking-[0.3em] font-bold">Stage</span>
       </div>
+      
+      <div id="seating" class="grid grid-cols-5 gap-4 max-w-sm mx-auto">
+        </div>
+    </div>
 
-      <div class="bg-white p-6 rounded-lg shadow mb-8">
-        <h2 class="text-lg font-bold mb-4 text-center border-b pb-2 italic text-gray-400 uppercase tracking-widest text-xs">Stage</h2>
-        <div id="seating" class="grid grid-cols-5 gap-3 max-w-xs mx-auto">
+    <div id="bookingForm" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm">
+        <h2 class="text-2xl font-bold mb-2">Book Seat #<span id="seatNumber"></span></h2>
+        
+        <div class="space-y-4 mt-4">
+          <div>
+            <label class="block text-sm font-semibold mb-1">Adults ($10.00)</label>
+            <input id="adults" type="number" min="0" placeholder="0" class="border border-slate-300 p-3 w-full rounded-lg focus:ring-2 focus:ring-black outline-none transition">
           </div>
-      </div>
+          <div>
+            <label class="block text-sm font-semibold mb-1">Children ($5.00)</label>
+            <input id="children" type="number" min="0" placeholder="0" class="border border-slate-300 p-3 w-full rounded-lg focus:ring-2 focus:ring-black outline-none transition">
+          </div>
 
-      <div id="bookingForm" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4">
-        <div class="bg-white p-6 rounded-xl shadow-xl w-full max-w-sm">
-          <h2 class="text-xl font-bold mb-4">Book Seat #<span id="seatNumberDisplay"></span></h2>
-
-          <div class="space-y-4">
-            <div>
-              <label for="adults" class="block text-sm font-medium mb-1">Adults (£15.00):</label>
-              <input id="adults" type="number" min="0" value="0" class="border p-2 w-full rounded">
-            </div>
-
-            <div>
-              <label for="children" class="block text-sm font-medium mb-1">Children (£10.00):</label>
-              <input id="children" type="number" min="0" value="0" class="border p-2 w-full rounded">
-            </div>
-
-            <div class="flex gap-2 pt-2">
-              <button id="confirmBookingBtn" class="flex-1 bg-black text-white px-4 py-2 rounded font-bold">Confirm</button>
-              <button id="cancelBookingBtn" class="flex-1 bg-gray-200 text-gray-800 px-4 py-2 rounded">Cancel</button>
-            </div>
+          <div class="flex gap-3 pt-4">
+            <button onclick="saveBooking()" class="flex-1 bg-black text-white px-4 py-3 rounded-xl font-bold hover:bg-slate-800 transition">Confirm</button>
+            <button onclick="cancelBooking()" class="flex-1 bg-slate-100 text-slate-600 px-4 py-3 rounded-xl font-bold hover:bg-slate-200 transition">Cancel</button>
           </div>
         </div>
       </div>
     </div>
-
   </div>
 
-  <script type="module" src="./app.js"></script>
+  <script type="module">
+    // Import Firebase modules via CDN
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+    // Your Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyBJeSiCRIltuDtB9ztQju8sBZ2zJfYUMtI",
+      authDomain: "seatsync-3e23b.firebaseapp.com",
+      projectId: "seatsync-3e23b",
+      storageBucket: "seatsync-3e23b.firebasestorage.app",
+      messagingSenderId: "446161771063",
+      appId: "1:446161771063:web:02de1da576721fe8babdb2"
+    };
+
+    // Initialize App and Firestore
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    console.log("Firestore Database connected successfully! 🚀");
+
+    const seatingEl = document.getElementById("seating");
+    const formEl = document.getElementById("bookingForm");
+    const seatNumberEl = document.getElementById("seatNumber");
+    
+    let selectedSeat = null;
+    const PRICE_ADULT = 10;
+    const PRICE_CHILD = 5;
+    const TOTAL_SEATS = 25;
+
+    // Real-time listener for bookings
+    onSnapshot(collection(db, "bookings"), (snapshot) => {
+      const bookedIds = [];
+      let totalRev = 0;
+      let totalTix = 0;
+
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        bookedIds.push(data.seatId);
+        totalRev += data.total;
+        totalTix += (data.adults + data.children);
+      });
+
+      renderGrid(bookedIds);
+      updateUI(totalRev, totalTix);
+    });
+
+    function renderGrid(bookedIds) {
+      seatingEl.innerHTML = "";
+      for (let i = 1; i <= TOTAL_SEATS; i++) {
+        const isTaken = bookedIds.includes(i);
+        const btn = document.createElement("button");
+        btn.textContent = i;
+        btn.disabled = isTaken;
+        
+        btn.className = `p-4 rounded-lg font-bold text-lg transition-all ${
+          isTaken 
+          ? "bg-slate-200 text-slate-400 cursor-not-allowed" 
+          : "bg-emerald-500 text-white shadow hover:bg-emerald-600 hover:-translate-y-1"
+        }`;
+        
+        btn.onclick = () => {
+          selectedSeat = i;
+          seatNumberEl.textContent = i;
+          formEl.classList.remove("hidden");
+        };
+        seatingEl.appendChild(btn);
+      }
+    }
+
+    window.saveBooking = async function() {
+      const adults = parseInt(document.getElementById("adults").value) || 0;
+      const children = parseInt(document.getElementById("children").value) || 0;
+
+      if (adults + children === 0) return alert("Select at least one ticket.");
+
+      const totalVal = (adults * PRICE_ADULT) + (children * PRICE_CHILD);
+
+      try {
+        await addDoc(collection(db, "bookings"), {
+          seatId: selectedSeat,
+          adults,
+          children,
+          total: totalVal,
+          created: new Date()
+        });
+        cancelBooking();
+      } catch (err) {
+        console.error("Booking error:", err);
+      }
+    };
+
+    window.cancelBooking = function() {
+      formEl.classList.add("hidden");
+      document.getElementById("adults").value = "";
+      document.getElementById("children").value = "";
+    };
+
+    function updateUI(rev, tix) {
+      document.getElementById("revenue").textContent = rev;
+      document.getElementById("tickets").textContent = tix;
+    }
+  </script>
 </body>
 </html>
