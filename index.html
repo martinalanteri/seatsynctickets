@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SeatSync | Live Booking</title>
+  <title>SeatSync | Multi-Booking</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-50 text-slate-900 antialiased">
@@ -11,7 +11,7 @@
   <div class="max-w-4xl mx-auto p-6">
     <header class="text-center mb-8">
       <h1 class="text-4xl font-extrabold tracking-tight">🎭 SeatSync</h1>
-      <p class="text-slate-500">Live Theatre Management</p>
+      <p class="text-slate-500">Tap seats to select, then book all at once</p>
     </header>
 
     <div class="grid grid-cols-2 gap-4 mb-8">
@@ -30,26 +30,39 @@
         <span class="text-[10px] text-white uppercase tracking-[0.3em] font-bold">Stage</span>
       </div>
       
-      <div id="seating" class="grid grid-cols-5 gap-4 max-w-sm mx-auto">
-        </div>
+      <div id="seating" class="grid grid-cols-5 gap-4 max-w-sm mx-auto"></div>
+
+      <div id="multiAction" class="hidden mt-8 text-center border-t pt-6">
+        <p class="mb-4 font-medium text-slate-600">Selected Seats: <span id="selectedCount" class="font-bold text-black">0</span></p>
+        <button onclick="openBookingForm()" class="bg-black text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-800 transition shadow-lg">
+          Book Selected Seats
+        </button>
+      </div>
     </div>
 
     <div id="bookingForm" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm">
-        <h2 class="text-2xl font-bold mb-2">Book Seat #<span id="seatNumber"></span></h2>
+        <h2 class="text-2xl font-bold mb-4">Ticket Type</h2>
         
-        <div class="space-y-4 mt-4">
-          <div>
-            <label class="block text-sm font-semibold mb-1">Adults ($10.00)</label>
-            <input id="adults" type="number" min="0" placeholder="0" class="border border-slate-300 p-3 w-full rounded-lg focus:ring-2 focus:ring-black outline-none transition">
-          </div>
-          <div>
-            <label class="block text-sm font-semibold mb-1">Children ($5.00)</label>
-            <input id="children" type="number" min="0" placeholder="0" class="border border-slate-300 p-3 w-full rounded-lg focus:ring-2 focus:ring-black outline-none transition">
+        <div class="space-y-6">
+          <div class="flex items-center justify-between p-4 border rounded-xl hover:bg-slate-50 transition cursor-pointer" onclick="selectType('adult')">
+            <div>
+              <p class="font-bold">Adult</p>
+              <p class="text-sm text-slate-500">$10.00 per seat</p>
+            </div>
+            <div id="adultCheck" class="w-6 h-6 border-2 rounded-full flex items-center justify-center"></div>
           </div>
 
-          <div class="flex gap-3 pt-4">
-            <button onclick="saveBooking()" class="flex-1 bg-black text-white px-4 py-3 rounded-xl font-bold hover:bg-slate-800 transition">Confirm</button>
+          <div class="flex items-center justify-between p-4 border rounded-xl hover:bg-slate-50 transition cursor-pointer" onclick="selectType('child')">
+            <div>
+              <p class="font-bold">Child</p>
+              <p class="text-sm text-slate-500">$5.00 per seat</p>
+            </div>
+            <div id="childCheck" class="w-6 h-6 border-2 rounded-full flex items-center justify-center"></div>
+          </div>
+
+          <div class="flex gap-3 pt-2">
+            <button onclick="saveAllBookings()" class="flex-1 bg-black text-white px-4 py-3 rounded-xl font-bold hover:bg-slate-800 transition">Confirm Booking</button>
             <button onclick="cancelBooking()" class="flex-1 bg-slate-100 text-slate-600 px-4 py-3 rounded-xl font-bold hover:bg-slate-200 transition">Cancel</button>
           </div>
         </div>
@@ -58,11 +71,9 @@
   </div>
 
   <script type="module">
-    // 1. Firebase Modular Imports
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, onSnapshot, getDocs, deleteDoc, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // 2. Firebase Configuration
     const firebaseConfig = {
       apiKey: "AIzaSyBJeSiCRIltuDtB9ztQju8sBZ2zJfYUMtI",
       authDomain: "seatsync-3e23b.firebaseapp.com",
@@ -72,21 +83,20 @@
       appId: "1:446161771063:web:02de1da576721fe8babdb2"
     };
 
-    // 3. Initialize Firebase & Database
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    console.log("Firestore Database connected successfully! 🚀");
 
     const seatingEl = document.getElementById("seating");
+    const multiActionEl = document.getElementById("multiAction");
+    const selectedCountEl = document.getElementById("selectedCount");
     const formEl = document.getElementById("bookingForm");
-    const seatNumberEl = document.getElementById("seatNumber");
     
-    let selectedSeat = null;
+    let tempSelectedSeats = [];
+    let selectedType = null; // 'adult' or 'child'
+    const TOTAL_SEATS = 25;
     const PRICE_ADULT = 10;
     const PRICE_CHILD = 5;
-    const TOTAL_SEATS = 25;
 
-    // 4. Listen for live updates from Firestore
     onSnapshot(collection(db, "bookings"), (snapshot) => {
       const bookedIds = [];
       let totalRev = 0;
@@ -99,62 +109,97 @@
         totalTix += (data.adults + data.children);
       });
 
+      if (bookedIds.length >= TOTAL_SEATS) {
+        alert("Performance Sold Out! Resetting the board...");
+        clearAllBookings();
+      }
+
       renderGrid(bookedIds);
       updateUI(totalRev, totalTix);
     });
 
-    // 5. Render Grid (Buttons)
     function renderGrid(bookedIds) {
       seatingEl.innerHTML = "";
       for (let i = 1; i <= TOTAL_SEATS; i++) {
         const isTaken = bookedIds.includes(i);
+        const isSelected = tempSelectedSeats.includes(i);
         const btn = document.createElement("button");
         btn.textContent = i;
         btn.disabled = isTaken;
         
-        btn.className = `p-4 rounded-lg font-bold text-lg transition-all duration-200 ${
-          isTaken 
-          ? "bg-slate-200 text-slate-400 cursor-not-allowed scale-95" 
-          : "bg-emerald-500 text-white shadow-sm hover:bg-emerald-600 hover:-translate-y-1 active:scale-95"
-        }`;
-        
-        btn.onclick = () => {
-          selectedSeat = i;
-          seatNumberEl.textContent = i;
-          formEl.classList.remove("hidden");
-        };
+        let colorClass = "bg-emerald-500 hover:bg-emerald-600 text-white shadow";
+        if (isTaken) colorClass = "bg-slate-200 text-slate-400 cursor-not-allowed";
+        if (isSelected) colorClass = "bg-blue-600 text-white ring-4 ring-blue-200 scale-105";
+
+        btn.className = `p-4 rounded-lg font-bold text-lg transition-all duration-150 ${colorClass}`;
+        btn.onclick = () => toggleSeatSelection(i, bookedIds);
         seatingEl.appendChild(btn);
       }
     }
 
-    // 6. Booking Actions (Attached to window for HTML access)
-    window.saveBooking = async function() {
-      const adults = parseInt(document.getElementById("adults").value) || 0;
-      const children = parseInt(document.getElementById("children").value) || 0;
+    function toggleSeatSelection(id, bookedIds) {
+      if (tempSelectedSeats.includes(id)) {
+        tempSelectedSeats = tempSelectedSeats.filter(item => item !== id);
+      } else {
+        tempSelectedSeats.push(id);
+      }
+      selectedCountEl.textContent = tempSelectedSeats.length;
+      multiActionEl.classList.toggle("hidden", tempSelectedSeats.length === 0);
+      renderGrid(bookedIds);
+    }
 
-      if (adults + children === 0) return alert("Select at least one ticket.");
+    window.selectType = (type) => {
+      selectedType = type;
+      document.getElementById('adultCheck').innerHTML = type === 'adult' ? '✓' : '';
+      document.getElementById('childCheck').innerHTML = type === 'child' ? '✓' : '';
+      document.getElementById('adultCheck').className = `w-6 h-6 border-2 rounded-full flex items-center justify-center ${type === 'adult' ? 'bg-black text-white border-black' : 'border-slate-300'}`;
+      document.getElementById('childCheck').className = `w-6 h-6 border-2 rounded-full flex items-center justify-center ${type === 'child' ? 'bg-black text-white border-black' : 'border-slate-300'}`;
+    };
 
-      const totalVal = (adults * PRICE_ADULT) + (children * PRICE_CHILD);
+    window.openBookingForm = () => formEl.classList.remove("hidden");
 
-      try {
-        await addDoc(collection(db, "bookings"), {
-          seatId: selectedSeat,
-          adults,
-          children,
-          total: totalVal,
+    window.saveAllBookings = async function() {
+      if (!selectedType) return alert("Please select a ticket type (Adult or Child).");
+
+      const batch = writeBatch(db);
+      const isAdult = selectedType === 'adult';
+      const price = isAdult ? PRICE_ADULT : PRICE_CHILD;
+      const totalPerSeat = price;
+
+      tempSelectedSeats.forEach(seatId => {
+        const docRef = doc(collection(db, "bookings"));
+        batch.set(docRef, {
+          seatId,
+          adults: isAdult ? 1 : 0,
+          children: isAdult ? 0 : 1,
+          total: totalPerSeat,
           created: new Date()
         });
+      });
+
+      try {
+        await batch.commit();
+        tempSelectedSeats = [];
+        selectedType = null;
+        multiActionEl.classList.add("hidden");
         cancelBooking();
       } catch (err) {
-        console.error("Booking error:", err);
-        alert("Failed to save booking. Please check your Firestore rules.");
+        console.error("Batch error:", err);
       }
     };
 
+    async function clearAllBookings() {
+      const querySnapshot = await getDocs(collection(db, "bookings"));
+      const batch = writeBatch(db);
+      querySnapshot.forEach((d) => batch.delete(doc(db, "bookings", d.id)));
+      await batch.commit();
+    }
+
     window.cancelBooking = function() {
       formEl.classList.add("hidden");
-      document.getElementById("adults").value = "";
-      document.getElementById("children").value = "";
+      selectedType = null;
+      document.getElementById('adultCheck').innerHTML = '';
+      document.getElementById('childCheck').innerHTML = '';
     };
 
     function updateUI(rev, tix) {
