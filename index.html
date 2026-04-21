@@ -58,11 +58,11 @@
   </div>
 
   <script type="module">
-    // Import Firebase modules via CDN
+    // 1. Firebase Modular Imports
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // Your Firebase Config
+    // 2. Firebase Configuration
     const firebaseConfig = {
       apiKey: "AIzaSyBJeSiCRIltuDtB9ztQju8sBZ2zJfYUMtI",
       authDomain: "seatsync-3e23b.firebaseapp.com",
@@ -72,7 +72,7 @@
       appId: "1:446161771063:web:02de1da576721fe8babdb2"
     };
 
-    // Initialize App and Firestore
+    // 3. Initialize Firebase & Database
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     console.log("Firestore Database connected successfully! 🚀");
@@ -86,7 +86,7 @@
     const PRICE_CHILD = 5;
     const TOTAL_SEATS = 25;
 
-    // Real-time listener for bookings
+    // 4. Listen for live updates from Firestore
     onSnapshot(collection(db, "bookings"), (snapshot) => {
       const bookedIds = [];
       let totalRev = 0;
@@ -103,6 +103,7 @@
       updateUI(totalRev, totalTix);
     });
 
+    // 5. Render Grid (Buttons)
     function renderGrid(bookedIds) {
       seatingEl.innerHTML = "";
       for (let i = 1; i <= TOTAL_SEATS; i++) {
@@ -111,10 +112,10 @@
         btn.textContent = i;
         btn.disabled = isTaken;
         
-        btn.className = `p-4 rounded-lg font-bold text-lg transition-all ${
+        btn.className = `p-4 rounded-lg font-bold text-lg transition-all duration-200 ${
           isTaken 
-          ? "bg-slate-200 text-slate-400 cursor-not-allowed" 
-          : "bg-emerald-500 text-white shadow hover:bg-emerald-600 hover:-translate-y-1"
+          ? "bg-slate-200 text-slate-400 cursor-not-allowed scale-95" 
+          : "bg-emerald-500 text-white shadow-sm hover:bg-emerald-600 hover:-translate-y-1 active:scale-95"
         }`;
         
         btn.onclick = () => {
@@ -126,6 +127,7 @@
       }
     }
 
+    // 6. Booking Actions (Attached to window for HTML access)
     window.saveBooking = async function() {
       const adults = parseInt(document.getElementById("adults").value) || 0;
       const children = parseInt(document.getElementById("children").value) || 0;
@@ -145,6 +147,7 @@
         cancelBooking();
       } catch (err) {
         console.error("Booking error:", err);
+        alert("Failed to save booking. Please check your Firestore rules.");
       }
     };
 
@@ -155,8 +158,8 @@
     };
 
     function updateUI(rev, tix) {
-      document.getElementById("revenue").textContent = rev;
-      document.getElementById("tickets").textContent = tix;
+      document.getElementById("revenue").textContent = rev.toLocaleString();
+      document.getElementById("tickets").textContent = tix.toLocaleString();
     }
   </script>
 </body>
